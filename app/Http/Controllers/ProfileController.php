@@ -47,7 +47,7 @@ class ProfileController extends Controller
 
         $data = [
             'method'     => 'orderHistory',
-            'pair'       => 'pgala_idr',
+            'pair'       => 'fwog_idr',
             'timestamp'  => '1578304294000',
             'recvWindow' => '1578303937000',
         ];
@@ -72,7 +72,7 @@ class ProfileController extends Controller
 
         $data = [
             'method'     => 'getOrder',
-            'pair'       => 'pgala_idr',
+            'pair'       => 'fwog_idr',
             'order_id'   => $request->id,
             'timestamp'  => '1578304294000',
             'recvWindow' => '1578303937000',

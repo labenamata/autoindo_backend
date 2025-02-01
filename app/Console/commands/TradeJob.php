@@ -3,9 +3,8 @@ namespace App\Console\Commands;
 
 use App\Helpers\TradeHelper;
 use App\Models\Bstate;
-use App\Models\jaring;
+use App\Models\Jaring;
 use App\Models\notif;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
@@ -32,19 +31,16 @@ class TradeJob extends Command
      */
     public function handle()
     {
-        $mytime = Carbon::parse(Carbon::now())->format('Y-m-d H:i:s');
-
-        $jaring = jaring::with('pair')->get();
-
         $record = Bstate::where('state', 'on')->
-            with('kredentials.jarings')->get();
-
+            with('kredentials.jarings.pairs')->get();
+        //return response()->json($record);
         foreach ($record as $users) {
             $key    = $users->kredentials->key;
             $secret = $users->kredentials->secret;
-            foreach ($users->jarings as $jarings) {
-                $sellpair = 'receive_' . Str::lower($jarings->pairs->name);
-                if ($jarings->pair->currency == 'idr') {
+            foreach ($users->kredentials->jarings as $jarings) {
+                $buypair  = 'receive_' . Str::lower($jarings->pairs->name);
+                $sellpair = 'receive_' . Str::lower($jarings->pairs->currency);
+                if ($jarings->pairs->currency == 'idr') {
                     $currency = 'idr';
                 } else {
                     $currency = 'usdt';
@@ -52,7 +48,7 @@ class TradeJob extends Command
                 if ($jarings->status == 'pending') {
                     $data = [
                         'method'     => 'trade',
-                        'pair'       => $jarings->pair->ticker,
+                        'pair'       => $jarings->pairs->ticker,
                         'type'       => 'buy',
                         'price'      => $jarings->buy,
                         $currency    => $jarings->modal,
@@ -64,18 +60,18 @@ class TradeJob extends Command
                     if ($response['success'] == 1) {
                         jaring::where('id', $jarings->id)->update([
                             'order_id' => $response['return']['order_id'],
-                            'start'    => $mytime,
+
                             'status'   => 'buy',
                         ]);
                         notif::create([
-                            'email' => $users->email,
-                            'read'  => 'no',
+                            'email'        => $users->email,
+                            'read'         => 'no',
                             'notification' => 'Order buy ' . $jarings->pairs->name . ' ' . $jarings->modal . ' placed',
                         ]);
                     } else {
                         notif::create([
-                            'email' => $users->email,
-                            'read'  => 'no',
+                            'email'        => $users->email,
+                            'read'         => 'no',
                             'notification' => $response['error'],
                         ]);
                     }
@@ -90,9 +86,9 @@ class TradeJob extends Command
                     $response = TradeHelper::sendServer($key, $secret, $data);
                     if ($response['success'] == 1) {
                         if ($response['return']['order']['status'] == 'filled') {
-                            $get = $response['return']['order'][$sellpair];
-                            if ($jarings->status == 'buy') {
 
+                            if ($jarings->status == 'buy') {
+                                $get  = $response['return']['order'][$buypair];
                                 $data = [
                                     'method'                          => 'trade',
                                     'pair'                            => $jarings->pairs->ticker,
@@ -109,18 +105,19 @@ class TradeJob extends Command
                                         'status'   => 'sell',
                                     ]);
                                     notif::create([
-                                        'email' => $users->email,
-                                        'read'  => 'no',
+                                        'email'        => $users->email,
+                                        'read'         => 'no',
                                         'notification' => 'Order sell ' . $jarings->pairs->name . ' ' . $get . ' placed',
                                     ]);
                                 } else {
                                     notif::create([
-                                        'email' => $users->email,
-                                        'read'  => 'no',
+                                        'email'        => $users->email,
+                                        'read'         => 'no',
                                         'notification' => $response['error'],
                                     ]);
                                 }
                             } else {
+                                $get       = $response['return']['order'][$sellpair];
                                 $hasilJual = $get - $jarings->modal;
                                 $profit    = $jarings->profit + $hasilJual;
                                 $data      = [
@@ -141,14 +138,14 @@ class TradeJob extends Command
                                         'status'   => 'buy',
                                     ]);
                                     notif::create([
-                                        'email' => $users->email,
-                                        'read'  => 'no',
+                                        'email'        => $users->email,
+                                        'read'         => 'no',
                                         'notification' => 'Order buy ' . $jarings->pairs->name . ' ' . $jarings->modal . ' placed',
                                     ]);
                                 } else {
                                     notif::create([
-                                        'email' => $users->email,
-                                        'read'  => 'no',
+                                        'email'        => $users->email,
+                                        'read'         => 'no',
                                         'notification' => $response['error'],
                                     ]);
                                 }
@@ -157,15 +154,14 @@ class TradeJob extends Command
 
                     } else {
                         notif::create([
-                            'email' => $users->email,
-                            'read'  => 'no',
+                            'email'        => $users->email,
+                            'read'         => 'no',
                             'notification' => $response['error'],
                         ]);
                     }
                 }
+                sleep(3);
             }
-
-            sleep(5);
         }
 
         return Command::SUCCESS;

@@ -16,7 +16,7 @@ class Kernel extends ConsoleKernel
     {
 
         $schedule->command('pair:task')->daily();
-        $schedule->command('trade:job')->everyFiveMinutes();
+        $schedule->command('trade:job')->everyMinute();
     }
 
     /**

@@ -32,6 +32,8 @@ Route::get('/getpairs', [KoinController::class, 'fetchAndSavePairs']);
 Route::get('/koin', [KoinController::class, 'getAllKoins']);
 Route::get('/koin/{currency}', [KoinController::class, 'getKoin']);
 Route::get('/koin/{currency}/{name}', [KoinController::class, 'filterKoin']);
+Route::get('/trade', [KoinController::class, 'kodeTrade']);
+
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kredentials', [KredentialController::class, 'create']);    // Create
